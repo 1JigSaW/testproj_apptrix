@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 import os
 from PIL import Image
-#from dating.utils.Mailer import Mailer
+
 
 GENDER_CHOICES = (
 	('M', 'Male'),

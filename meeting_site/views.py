@@ -4,8 +4,9 @@ from django.core.mail import send_mail
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django_filters import rest_framework as filters
 from .serializers import RegistrationSerializer, MatchSerializer
-from .models import Participant, Match
+from .models import Participant, Match, GENDER_CHOICES
 
 class RegisterView(generics.CreateAPIView):
 	serializer_class = RegistrationSerializer
@@ -71,3 +72,18 @@ class MatchView(APIView):
 	    admin_email = settings.EMAIL
 	    user_email = [id_from.email]
 	    return send_mail(subject, message, admin_email, user_email)
+
+class ParticipantFilter(filters.FilterSet):
+    gender = filters.ChoiceFilter(choices=GENDER_CHOICES)
+    first_name = filters.CharFilter(field_name='first_name')
+    last_name = filters.CharFilter(field_name='last_name')
+
+    class Meta:
+        model = Participant
+        fields = ['gender', 'first_name', 'last_name']
+
+class ParticipantListView(generics.ListAPIView):
+    queryset = Participant.objects.all()
+    serializer_class = RegistrationSerializer
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = ParticipantFilter
