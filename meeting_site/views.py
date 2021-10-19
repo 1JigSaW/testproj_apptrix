@@ -1,7 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
+from django.conf import settings
+from django.core.mail import send_mail
 from rest_framework import generics, permissions
-from .serializers import RegistrationSerializer
-from .models import Participant
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .serializers import RegistrationSerializer, MatchSerializer
+from .models import Participant, Match
 
 class RegisterView(generics.CreateAPIView):
 	serializer_class = RegistrationSerializer
@@ -9,3 +13,61 @@ class RegisterView(generics.CreateAPIView):
 
 	def perform_create(self, serializer):
 		serializer.save()
+
+class MatchView(APIView):
+	serializer_class = MatchSerializer
+	permission_classes = [permissions.IsAuthenticated]
+
+	def get(self, request, id):
+		matching = get_object_or_404(Participant, id=id)
+		context = {
+			"request": self.request,
+			"matching": matching
+		}
+		serializer = RegistrationSerializer(matching, context=context, many=False)
+		return Response(serializer.data)
+
+	def post(self, request, id):
+		matching = get_object_or_404(Participant, id=id)
+		context = {
+			"request": self.request,
+			"matching": matching
+		}
+		serializer = MatchSerializer(data=request.data, context=context)
+		if serializer.is_valid():
+			match = serializer.save(Match, id_from=request.id_from, id_to=matching)
+			if match.mark:
+				check_matching(match)
+			return Response(serializer.data, status=status.HTTP_201_CREATED)
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+	def patch(self, request, id):
+		matching = get_object_or_404(
+			Match, user=request.id_from, matching_id=id
+		)
+		context = {
+			"request": self.request
+		}
+		serializer = MatchSerializer(matching, data=request.data, context=context, partial=True)
+		if serializer.is_valid():
+			match = serializer.save()
+			if match.reciprocity:
+				check_matching(match)
+			return Response(serializer.data, status=status.HTTP_200_OK)
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+	def check_matching(match):
+	    user = match.id_from
+	    match = match.id_to
+	    if not Match.objects.filter(id_from=match, id_to=user, reciprocity=True).exists():
+	        return
+
+	    return send_match(user, match), send_match(match, user)
+
+
+	def send_match(id_from, id_to):
+	    subject = 'У вас есть пара!'
+	    message = f'Вы понравились {id_to.first_name}!  Почта участника: {id_to.email}'
+	    admin_email = settings.EMAIL
+	    user_email = [id_from.email]
+	    return send_mail(subject, message, admin_email, user_email)

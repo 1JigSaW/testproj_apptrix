@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 import os
 from PIL import Image
+#from dating.utils.Mailer import Mailer
 
 GENDER_CHOICES = (
 	('M', 'Male'),
@@ -38,3 +39,21 @@ class Participant(models.Model):
 		img.paste(watermark, (x, y), paste_mask)
 		img.save(self.photo.path)
 
+class Match(models.Model):
+	id_from = models.ForeignKey(Participant, on_delete=models.CASCADE, 
+		related_name='id_from')
+	id_to = models.ForeignKey(Participant, on_delete=models.CASCADE, 
+		related_name='id_to')
+	reciprocity = models.BooleanField(default=False)
+
+	class Meta:
+		constraints = [
+            models.UniqueConstraint(
+                fields=['id_from', 'id_to'],
+                name='unique matches')
+        ]
+		verbose_name = 'Взаимность'
+		verbose_name_plural = 'Взаимности'
+
+	def __str__(self):
+		return f"{self.id_from} + {self.id_to}"

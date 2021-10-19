@@ -130,6 +130,8 @@ STATIC_URL = '/static/'
 
 WATERMARK_PATH = os.path.join(BASE_DIR, 'static/watermark.png')
 
+EMAIL = 'misho_1998@mail.ru'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
